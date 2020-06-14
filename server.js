@@ -9,7 +9,7 @@ dotenv.config({ path: './config/config.env' });
 const app = express();
 
 // mount routers
-app.use('travels', travels);
+app.use('/travels', travels);
 
 const PORT = process.env.PORT || 5000;
 

@@ -9,7 +9,7 @@ exports.getTravels = (req, res, next) => {
 // @route     GET /travels/:id
 // @access    Private
 exports.getTravel = (req, res, next) => {
-  res.status(200).json({ success: true, message: 'Get a travels' });
+  res.status(200).json({ success: true, message: 'Get a travel' });
 }
 
 // @desc      Create a travel

@@ -1,7 +1,7 @@
 const express = require('express');
 const { getTravels, getTravel, createTravel, updateTravel, deleteTravel } = require('../controllers/travels');
 
-const router = express.Router;
+const router = express.Router();
 
 router
   .route('/')
@@ -10,7 +10,7 @@ router
 
 router
   .route('/:id')
-  .get(getTravels)
+  .get(getTravel)
   .put(updateTravel)
   .delete(deleteTravel);
 
