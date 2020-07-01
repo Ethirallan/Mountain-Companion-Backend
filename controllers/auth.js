@@ -5,7 +5,7 @@ const moment = require('moment');
 // @route     POST /login
 // @access    Public
 exports.login = (req, res, next) => {
-  User.findById(req.authId, (err, data) => {
+  User.findById(req.auth_id, (err, data) => {
     if (err)
       res.status(500).send({
         message:

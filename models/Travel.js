@@ -3,9 +3,11 @@ const db = require('./db');
 const Travel = function (travel) {
   this.id = travel.id;
   this.user_id = travel.user_id;
+  this.title = travel.title;
   this.date = travel.date;
   this.notes = travel.notes;
   this.thumbnail = travel.thumbnail;
+  this.thumbnail_blurhash = travel.thumbnail_blurhash;
   this.public = travel.public;
   this.created = travel.created;
 };
@@ -43,22 +45,22 @@ Travel.findById = (travelId, result) => {
 };
 
 Travel.getAll = (user_id, result) => {
-  db.query(`SELECT * FROM travel WHERE user_id = ${user_id}`, (err, res) => {
+  db.query(`SELECT * FROM travel WHERE user_id = '${user_id}' ORDER BY id DESC`, (err, res) => {
     if (err) {
       console.log("error: ", err);
       result(null, err);
       return;
     }
 
-    console.log("travels: ", res);
+    // console.log("travels: ", res);
     result(null, res);
   });
 };
 
 Travel.updateById = (id, travel, result) => {
   db.query(
-    "UPDATE travel SET date = ?, notes = ?, thumbnail = ?, public = ? WHERE id = ?",
-    [travel.date, travel.notes, travel.thumbnail, travel.public, id],
+    "UPDATE travel SET title = ?, date = ?, notes = ?, thumbnail = ?, thumbnail_blurhash = ?, public = ? WHERE id = ?",
+    [travel.title, travel.date, travel.notes, travel.thumbnail, travel.thumbnail_blurhash, travel.public, id],
     (err, res) => {
       if (err) {
         console.log("error: ", err);

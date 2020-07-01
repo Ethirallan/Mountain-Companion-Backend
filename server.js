@@ -1,13 +1,16 @@
 const express = require('express');
 const bodyParser = require("body-parser");
 const dotenv = require('dotenv');
-const checkIfAuthenticated = require('./middleware/firebase-auth');
-
 dotenv.config({ path: './config/config.env' });
+
+const checkIfAuthenticated = require('./middleware/firebase-auth');
 
 // route files
 const travels = require('./routes/travels');
 const auth = require('./routes/auth');
+const stops = require('./routes/stops');
+const travelImages = require('./routes/travelImages');
+const weather = require('./routes/weather');
 
 const app = express();
 
@@ -19,6 +22,9 @@ app.use(bodyParser.json());
 // mount routers
 app.use('/travels', checkIfAuthenticated, travels);
 app.use('/auth', checkIfAuthenticated, auth);
+app.use('/stops', checkIfAuthenticated, stops);
+app.use('/travel-images', checkIfAuthenticated, travelImages);
+app.use('/weather', weather);
 
 const PORT = process.env.PORT || 5000;
 
