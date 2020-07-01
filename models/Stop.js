@@ -49,7 +49,7 @@ Stop.getAll = (travel_id, result) => {
       return;
     }
 
-    console.log("stops: ", res);
+    // console.log("stops: ", res);
     result(null, res);
   });
 };
@@ -90,6 +90,24 @@ Stop.remove = (id, result) => {
     }
 
     console.log("deleted stop with id: ", id);
+    result(null, res);
+  });
+};
+
+Stop.removeAll = (travel_id, result) => {
+  db.query("DELETE FROM stop WHERE travel_id = ?", travel_id, (err, res) => {
+    if (err) {
+      console.log("error: ", err);
+      result(null, err);
+      return;
+    }
+
+    if (res.affectedRows == 0) {
+      result({ kind: "not_found" }, null);
+      return;
+    }
+
+    console.log("deleted stop with travel_id: ", travel_id);
     result(null, res);
   });
 };

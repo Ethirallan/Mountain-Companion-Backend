@@ -91,4 +91,22 @@ TravelImage.remove = (id, result) => {
   });
 };
 
+TravelImage.removeAll = (travel_id, result) => {
+  db.query("DELETE FROM travel_image WHERE travel_id = ?", travel_id, (err, res) => {
+    if (err) {
+      console.log("error: ", err);
+      result(null, err);
+      return;
+    }
+
+    if (res.affectedRows == 0) {
+      result({ kind: "not_found" }, null);
+      return;
+    }
+
+    console.log("deleted travelImage with travel_id: ", travel_id);
+    result(null, res);
+  });
+};
+
 module.exports = TravelImage;

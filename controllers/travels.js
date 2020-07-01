@@ -11,7 +11,20 @@ const { encode } = require("blurhash");
 // @route     GET /travels
 // @access    Private
 exports.getTravels = (req, res, next) => {
-  res.status(200).json({ success: true, message: 'Get all travels' });
+
+  Travel.getAll(req.auth_id, (err, data) => {
+      if (err) {
+        res.status(500).send({
+          message:
+            err.message || "Some error occurred while retrieving customers."
+        });
+      } else {
+        res.status(200).json({
+          success: true,
+          message: data
+        });
+      }
+  });
 }
 
 // @desc      Get a travel
@@ -24,7 +37,7 @@ exports.getTravel = (req, res, next) => {
 // @desc      Create a travel
 // @route     POST /travels
 // @access    Private
-exports.createTravel = (req, res, next) => {
+exports.createTravel = async (req, res, next) => {
   // Validate request
   if (!req.body) {
     res.status(400).send({
@@ -34,8 +47,10 @@ exports.createTravel = (req, res, next) => {
 
   const travel = new Travel({
     user_id : req.auth_id,
+    title : req.body.title,
     date : req.body.date,
     notes : req.body.notes,
+    thumbnail : req.body.thumbnail,
     public : 0,
   });
 
@@ -51,26 +66,29 @@ exports.createTravel = (req, res, next) => {
     // else res.send(data);
     travelId = data.id;
 
-    req.body.stops.forEach(el => {
-      const stop = new Stop({
-        travel_id : travelId,
-        location : el.location,
-        lat : el.lat,
-        lng : el.lng,
-        height : el.height,
-        time : el.time
+    if (req.body.stops != undefined && req.body.stops != null && req.body.stops.length > 0) {
+      req.body.stops.forEach(el => {
+        const stop = new Stop({
+          travel_id : travelId,
+          location : el.location,
+          lat : el.lat,
+          lng : el.lng,
+          height : el.height,
+          time : el.time
+        });
+    
+        Stop.create(stop, (err, data) => {
+          if (err) {
+            res.status(500).send({
+              message:
+                err.message || "Some error occurred while creating the User."
+            });
+          }
+          // else res.send(data);
+        });
       });
-  
-      Stop.create(stop, (err, data) => {
-        if (err) {
-          res.status(500).send({
-            message:
-              err.message || "Some error occurred while creating the User."
-          });
-        }
-        // else res.send(data);
-      });
-    });
+    }
+
 
     const encodeImageToBlurhash = path => new Promise((resolve, reject) => {
       sharp(path)
@@ -82,22 +100,59 @@ exports.createTravel = (req, res, next) => {
           resolve(encode(new Uint8ClampedArray(buffer), width, height, 7, 7));
         });
     });
-  
-    req.body.images.forEach(el => {
-      el = el.replace('data:image/jpeg;base64,', '');
-      var name = crypto.createHash("sha256").update(el).digest("hex");
-      console.log(name);
-      const imageBuffer = new Buffer(el, "base64");
-      fs.writeFileSync(`../mc-photos/travels/${name}.png`, imageBuffer);
 
-      encodeImageToBlurhash(`../mc-photos/travels/${name}.png`).then(hash => {
-        const image = new TravelImage({
-          travel_id : travelId,
-          url : `https://mountain-companion.com/mc-photos/travels/${name}.png`,
-          blurhash : hash
+    if (req.body.images != undefined && req.body.images != null && req.body.images.length > 0) {
+      req.body.images.forEach(el => {
+        var name = crypto.createHash("sha256").update(el).digest("hex");
+        el = el.replace('data:image/jpeg;base64,', '');
+        console.log(name);
+        const imageBuffer = new Buffer(el, "base64");
+        fs.writeFileSync(`../mc-photos/travels/${name}.png`, imageBuffer);
+
+        encodeImageToBlurhash(`../mc-photos/travels/${name}.png`).then(hash => {
+          const image = new TravelImage({
+            travel_id : travelId,
+            url : `https://mountain-companion.com/mc-photos/travels/${name}.png`,
+            blurhash : hash
+          });
+    
+          TravelImage.create(image, (err, data) => {
+            if (err) {
+              res.status(500).send({
+                message:
+                  err.message || "Some error occurred while creating the User."
+              });
+            }
+          });
+
+          // Travel.findById(travelId, (err, data) => {
+          //   if (data.thumbnail != undefined && data.thumbnail != null && data.thumbnail != '') {
+
+          //   } else {
+          //     const travel = new Travel({
+          //       thumbnail: name
+          //     });
+
+          //     Travel.updateById(travel, (err, data) => {
+
+          //     });
+          //   }
+          // });
         });
-  
-        TravelImage.create(image, (err, data) => {
+      });
+    }
+    encodeImageToBlurhash(`../mc-photos/travels/${req.body.thumbnail}.png`).then(hash => {
+        const travel = new Travel({
+          user_id : req.auth_id,
+          title : req.body.title,
+          date : req.body.date,
+          notes : req.body.notes,
+          thumbnail : req.body.thumbnail,
+          thumbnail_blurhash : hash,
+          public : 0,
+        });
+    
+        Travel.updateById(travelId, travel, (err, data) => {
           if (err) {
             res.status(500).send({
               message:
@@ -105,8 +160,8 @@ exports.createTravel = (req, res, next) => {
             });
           }
         });
-      });
     });
+
     res.status(200).json({ success: true, message: 'New travel created' });
   });
 }
@@ -122,5 +177,24 @@ exports.updateTravel = (req, res, next) => {
 // @route     DELETE /travels/:id
 // @access    Private
 exports.deleteTravel = (req, res, next) => {
-  res.status(200).json({ success: true, message: 'Delete a travel' });
+  Travel.remove(req.params.id, (err, data) => {
+    if (err) {
+      res.status(500).send({
+        message:
+          err.message || "Some error occurred while retrieving travel images."
+      });
+    } else {
+      Stop.removeAll(req.params.id, (err, data) => {
+
+      });
+      TravelImage.removeAll(req.params.id, (err, data) => {
+
+      });
+      res.status(200).json({
+        success: true,
+        message: data
+      });
+    }
+  });
+  // res.status(200).json({ success: true, message: 'Delete a travel' });
 }
