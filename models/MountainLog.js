@@ -40,7 +40,7 @@ MountainLog.findById = (mountainLogId, result) => {
 };
 
 MountainLog.getAll = (user_id, result) => {
-  db.query(`SELECT * FROM mountain_log WHERE user_id = ${user_id}`, (err, res) => {
+  db.query(`SELECT COUNT(mountain_log.id) as count, date, mountain_peak.* FROM mountain_log LEFT  JOIN mountain_peak ON mountain_log.mountain_peak_id = mountain_peak.id WHERE user_id = '${user_id}' GROUP BY mountain_log.mountain_peak_id`, (err, res) => {
     if (err) {
       console.log("error: ", err);
       result(null, err);
