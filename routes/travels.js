@@ -11,7 +11,7 @@ router
 router
   .route('/:id')
   .get(getTravel)
-  .put(updateTravel)
+  .patch(updateTravel)
   .delete(deleteTravel);
 
 module.exports = router;

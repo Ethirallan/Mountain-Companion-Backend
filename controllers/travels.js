@@ -2,10 +2,23 @@ const Travel = require('../models/Travel');
 const Stop = require('../models/Stop');
 const TravelImage = require('../models/TravelImage');
 const fs = require("fs");
+const { promisify } = require('util')
 const crypto = require('crypto');
-
 const sharp = require("sharp");
 const { encode } = require("blurhash");
+const readFileAsync = promisify(fs.readFile);
+const writeFileAsync = promisify(fs.writeFile);
+
+const encodeImageToBlurhash = path => new Promise((resolve, reject) => {
+  sharp(path)
+    .raw()
+    .ensureAlpha()
+    .resize(32, 32, { fit: "inside" })
+    .toBuffer((err, buffer, { width, height }) => {
+      if (err) return reject(err);
+      resolve(encode(new Uint8ClampedArray(buffer), width, height, 7, 7));
+    });
+});
 
 // @desc      Get all travels
 // @route     GET /travels
@@ -45,12 +58,40 @@ exports.createTravel = async (req, res, next) => {
     });
   }
 
+  /**
+   * save images to disk
+   * create travel
+   * insert travel
+   * get travel id
+   * add stops
+   * add images
+   * update travel hash
+   */
+
+  const saveImagesToDisk = async () =>  {
+    if (req.body.images != undefined && req.body.images != null && req.body.images.length > 0) {
+
+      await Promise.all(req.body.images.map(async (el) => {
+        var name = crypto.createHash("sha256").update(el).digest("hex");
+        el = el.replace('data:image/jpeg;base64,', '');
+        const imageBuffer = new Buffer(el, "base64");
+        await writeFileAsync(`../mc-photos/travels/${name}.png`, imageBuffer);
+      }));
+    }
+    return 'Saved to the disk';
+  };
+
+  await saveImagesToDisk();
+
+  var hash = await encodeImageToBlurhash(`../mc-photos/travels/${req.body.thumbnail}.png`);
+
   const travel = new Travel({
     user_id : req.auth_id,
     title : req.body.title,
     date : req.body.date,
     notes : req.body.notes,
     thumbnail : req.body.thumbnail,
+    thumbnail_blurhash : hash,
     public : 0,
   });
 
@@ -60,7 +101,7 @@ exports.createTravel = async (req, res, next) => {
     if (err) {
       res.status(500).send({
         message:
-          err.message || "Some error occurred while creating the User."
+          err.message || "Some error occurred while creating the Travel."
       });
     }
     // else res.send(data);
@@ -90,69 +131,15 @@ exports.createTravel = async (req, res, next) => {
     }
 
 
-    const encodeImageToBlurhash = path => new Promise((resolve, reject) => {
-      sharp(path)
-        .raw()
-        .ensureAlpha()
-        .resize(32, 32, { fit: "inside" })
-        .toBuffer((err, buffer, { width, height }) => {
-          if (err) return reject(err);
-          resolve(encode(new Uint8ClampedArray(buffer), width, height, 7, 7));
+    const saveImagesToDb = async name => {
+      await encodeImageToBlurhash(`../mc-photos/travels/${name}.png`).then(hash => {
+        const image = new TravelImage({
+          travel_id : travelId,
+          url : `https://mountain-companion.com/mc-photos/travels/${name}.png`,
+          blurhash : hash
         });
-    });
-
-    if (req.body.images != undefined && req.body.images != null && req.body.images.length > 0) {
-      req.body.images.forEach(el => {
-        var name = crypto.createHash("sha256").update(el).digest("hex");
-        el = el.replace('data:image/jpeg;base64,', '');
-        console.log(name);
-        const imageBuffer = new Buffer(el, "base64");
-        fs.writeFileSync(`../mc-photos/travels/${name}.png`, imageBuffer);
-
-        encodeImageToBlurhash(`../mc-photos/travels/${name}.png`).then(hash => {
-          const image = new TravelImage({
-            travel_id : travelId,
-            url : `https://mountain-companion.com/mc-photos/travels/${name}.png`,
-            blurhash : hash
-          });
-    
-          TravelImage.create(image, (err, data) => {
-            if (err) {
-              res.status(500).send({
-                message:
-                  err.message || "Some error occurred while creating the User."
-              });
-            }
-          });
-
-          // Travel.findById(travelId, (err, data) => {
-          //   if (data.thumbnail != undefined && data.thumbnail != null && data.thumbnail != '') {
-
-          //   } else {
-          //     const travel = new Travel({
-          //       thumbnail: name
-          //     });
-
-          //     Travel.updateById(travel, (err, data) => {
-
-          //     });
-          //   }
-          // });
-        });
-      });
-    }
-    encodeImageToBlurhash(`../mc-photos/travels/${req.body.thumbnail}.png`).then(hash => {
-        const travel = new Travel({
-          user_id : req.auth_id,
-          title : req.body.title,
-          date : req.body.date,
-          notes : req.body.notes,
-          thumbnail : req.body.thumbnail,
-          thumbnail_blurhash : hash,
-          public : 0,
-        });
-    
-        Travel.updateById(travelId, travel, (err, data) => {
+  
+        TravelImage.create(image, (err, data) => {
           if (err) {
             res.status(500).send({
               message:
@@ -160,7 +147,15 @@ exports.createTravel = async (req, res, next) => {
             });
           }
         });
-    });
+      });
+    };
+
+    if (req.body.images != undefined && req.body.images != null && req.body.images.length > 0) {
+      req.body.images.forEach(async el => {
+        var name = crypto.createHash("sha256").update(el).digest("hex");
+        await saveImagesToDb(name);
+      });
+    }
 
     res.status(200).json({ success: true, message: 'New travel created' });
   });
@@ -170,7 +165,21 @@ exports.createTravel = async (req, res, next) => {
 // @route     PUT /travels/:id
 // @access    Private
 exports.updateTravel = (req, res, next) => {
-  res.status(200).json({ success: true, message: 'Update a travel' });
+
+
+  Travel.updateById(req.params.id, req.body, (err, data) => {
+    if (err) {
+      res.status(500).send({
+        message:
+          err.message || "Some error occurred while retrieving travel images."
+      });
+    } else {
+      res.status(200).json({
+        success: true,
+        message: data
+      });
+    }
+  });
 }
 
 // @desc      Delete travels
