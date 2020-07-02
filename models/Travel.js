@@ -59,8 +59,8 @@ Travel.getAll = (user_id, result) => {
 
 Travel.updateById = (id, travel, result) => {
   db.query(
-    "UPDATE travel SET title = ?, date = ?, notes = ?, thumbnail = ?, thumbnail_blurhash = ?, public = ? WHERE id = ?",
-    [travel.title, travel.date, travel.notes, travel.thumbnail, travel.thumbnail_blurhash, travel.public, id],
+    "UPDATE travel SET ? WHERE id = ?",
+    [travel, id],
     (err, res) => {
       if (err) {
         console.log("error: ", err);

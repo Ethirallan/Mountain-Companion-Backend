@@ -11,6 +11,8 @@ const auth = require('./routes/auth');
 const stops = require('./routes/stops');
 const travelImages = require('./routes/travelImages');
 const weather = require('./routes/weather');
+const mountainPeaks = require('./routes/mountainPeaks');
+const mountainLog = require('./routes/mountainLog');
 
 const app = express();
 
@@ -25,6 +27,8 @@ app.use('/auth', checkIfAuthenticated, auth);
 app.use('/stops', checkIfAuthenticated, stops);
 app.use('/travel-images', checkIfAuthenticated, travelImages);
 app.use('/weather', weather);
+app.use('/mountain-peaks', mountainPeaks);
+app.use('/mountain-logs', checkIfAuthenticated, mountainLog);
 
 const PORT = process.env.PORT || 5000;
 
