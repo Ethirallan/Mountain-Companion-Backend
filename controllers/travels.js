@@ -165,8 +165,6 @@ exports.createTravel = async (req, res, next) => {
 // @route     PUT /travels/:id
 // @access    Private
 exports.updateTravel = (req, res, next) => {
-
-
   Travel.updateById(req.params.id, req.body, (err, data) => {
     if (err) {
       res.status(500).send({
@@ -205,5 +203,4 @@ exports.deleteTravel = (req, res, next) => {
       });
     }
   });
-  // res.status(200).json({ success: true, message: 'Delete a travel' });
 }

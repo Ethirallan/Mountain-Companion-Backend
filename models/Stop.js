@@ -56,8 +56,8 @@ Stop.getAll = (travel_id, result) => {
 
 Stop.updateById = (id, stop, result) => {
   db.query(
-    "UPDATE stop SET location = ?, lat = ?, lng = ?, height = ?, time = ? WHERE id = ?",
-    [stop.location, stop.lat, stop.lng, stop.height, stop.time, id],
+    "UPDATE stop SET ? WHERE id = ?",
+    [stop, id],
     (err, res) => {
       if (err) {
         console.log("error: ", err);
